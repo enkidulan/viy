@@ -4,7 +4,7 @@
 
 Lightweight **end-to-end process monitoring** for Linux. Unlike top, time, or single-metric profilers, viy captures CPU, memory, I/O, network, threads, and file descriptors together with time-series visualization and performance insights.
 
-It correlates resource spikes with Python function calls, helping too see root causes and understand program behavior.
+It correlates resource spikes with Python function calls, helping to see root causes and understand program behavior.
 
 Named after **Viy** (Вій), a creature inspired by Ukrainian folklore known for its powerful gaze that sees through everything.
 

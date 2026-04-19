@@ -15,14 +15,32 @@ pub fn setup_python_tracing(
     program: &str,
     py_filter: Option<&str>,
 ) -> Option<PyTraceSetup> {
-    let is_python = matches!(
+    // Check if program name suggests Python
+    let is_python_by_name = matches!(
         Path::new(program)
             .file_stem()
             .and_then(|s| s.to_str()),
         Some(s) if s == "python" || s == "python3" || s.starts_with("python3.")
     );
 
-    if !is_python {
+    // Check if file has Python shebang or .py extension
+    // Try to resolve full path if program is not an absolute path
+    let program_path = if Path::new(program).is_absolute() {
+        program.to_string()
+    } else {
+        which::which(program)
+            .ok()
+            .and_then(|p| p.to_str().map(|s| s.to_string()))
+            .unwrap_or_else(|| program.to_string())
+    };
+
+    let is_python_script = Path::new(&program_path)
+        .extension()
+        .and_then(|s| s.to_str())
+        == Some("py")
+        || check_shebang(&program_path);
+
+    if !is_python_by_name && !is_python_script {
         return None;
     }
 
@@ -48,6 +66,22 @@ pub fn setup_python_tracing(
         trace_path,
         site_dir,
     })
+}
+
+fn check_shebang(program: &str) -> bool {
+    let Ok(mut file) = std::fs::File::open(program) else {
+        return false;
+    };
+    let mut buf = [0u8; 256];
+    let Ok(n) = std::io::Read::read(&mut file, &mut buf) else {
+        return false;
+    };
+    if n < 2 || &buf[0..2] != b"#!" {
+        return false;
+    }
+    let shebang = String::from_utf8_lossy(&buf[0..n]);
+    let first_line = shebang.lines().next().unwrap_or("");
+    first_line.contains("python")
 }
 
 pub fn cleanup(setup: &PyTraceSetup) {
